@@ -82,3 +82,27 @@ export interface AiAction {
   command: 'navigate' | 'open_report_modal' | 'apply_filter' | 'reset_filters' | 'click_mark_done' | 'logout' | 'toggle_maintenance' | null;
   payload: string | null;
 }
+
+// Module augmentation for framer-motion to fix widespread type errors.
+// This is a workaround for a potential version mismatch or configuration issue
+// where TypeScript doesn't correctly recognize framer-motion's animation props.
+import 'framer-motion';
+
+declare module 'framer-motion' {
+    export interface MotionProps {
+        initial?: any;
+        animate?: any;
+        exit?: any;
+        whileHover?: any;
+        whileTap?: any;
+        whileFocus?: any;
+        whileInView?: any;
+        variants?: any;
+        transition?: any;
+        layout?: any;
+        layoutId?: any;
+        drag?: any;
+        dragConstraints?: any;
+        dragMomentum?: any;
+    }
+}
