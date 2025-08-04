@@ -64,7 +64,7 @@ const getGaugeColor = (score: number) => {
 
 // Reusable AnimatedNumber component
 const AnimatedNumber: React.FC<{ value: number, className?: string, decimals?: number }> = ({ value, className, decimals = 0 }) => {
-    const count = useMotionValue(0);
+    const count = useMotionValue<number>(0);
     const transformed = useTransform(count, (latest) => {
         return latest.toFixed(decimals);
     });
@@ -99,7 +99,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ metric, onOpenReport }) => {
     const RADIUS = 60;
     const STROKE_WIDTH = 12;
     const circumference = 2 * Math.PI * RADIUS;
-    const offset = useMotionValue(circumference);
+    const offset = useMotionValue<number>(circumference);
     const strokeDashoffset = useTransform(offset, val => val);
 
     useEffect(() => {
