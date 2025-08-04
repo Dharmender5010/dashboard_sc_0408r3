@@ -17,14 +17,6 @@ interface AIAssistantModalProps {
     onResetConversation: () => void;
 }
 
-const MicIcon: React.FC<{ isRecording: boolean }> = ({ isRecording }) => (
-    <svg className={`h-6 w-6 transition-colors ${isRecording ? 'text-red-500' : 'text-gray-500 group-hover:text-brand-primary'}`} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3z"></path>
-        <path d="M12 16.5c-2.49 0-4.5-2.01-4.5-4.5H6c0 3.31 2.69 6 6 6s6-2.69 6-6h-1.5c0 2.49-2.01 4.5-4.5 4.5z"></path>
-        <path d="M19 11h-1.5c0 2.49-2.01 4.5-4.5 4.5S8.5 13.49 8.5 11H7c0 3.31 2.69 6 6 6s6-2.69 6-6zM12 2c-1.66 0-3 1.34-3 3v6c0 1.66 1.34 3 3 3s3-1.34 3-3V5c0-1.66-1.34-3-3-3z"></path>
-    </svg>
-);
-
 const LoadingDots: React.FC = () => (
     <div className="flex items-center gap-1.5">
         <motion.div className="h-2 w-2 bg-gray-400 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }} />
@@ -35,132 +27,11 @@ const LoadingDots: React.FC = () => (
 
 export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onClose, conversation, onSendMessage, isLoading, outputMode, setOutputMode, onResetConversation }) => {
     const [prompt, setPrompt] = useState('');
-    const [isRecording, setIsRecording] = useState(false);
-    const [placeholder, setPlaceholder] = useState('Ask me anything...');
-    
-    const recognitionRef = useRef<any>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
-    const placeholderTimeoutRef = useRef<number | null>(null);
-    const maxDurationTimeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [conversation, isLoading]);
-    
-    useEffect(() => {
-        if (isRecording) {
-            setPlaceholder('Listening... Speak your concern now.');
-            if (placeholderTimeoutRef.current) {
-                clearTimeout(placeholderTimeoutRef.current);
-                placeholderTimeoutRef.current = null;
-            }
-        } else if (!placeholderTimeoutRef.current) {
-            setPlaceholder('Ask me anything...');
-        }
-    }, [isRecording]);
-
-    useEffect(() => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.warn("Speech recognition not supported by this browser.");
-            return;
-        }
-
-        recognitionRef.current = new SpeechRecognition();
-        const recognition = recognitionRef.current;
-        
-        recognition.continuous = false; // Recognizes a single utterance, then stops.
-        recognition.interimResults = true; // Provides interim results for live transcription.
-        recognition.lang = 'en-IN'; // Use Indian English for better accent recognition and for Hindi.
-
-        recognition.onresult = (event: any) => {
-            if (maxDurationTimeoutRef.current) {
-                clearTimeout(maxDurationTimeoutRef.current);
-                 maxDurationTimeoutRef.current = window.setTimeout(() => recognitionRef.current?.stop(), 20000);
-            }
-            
-            // Build the full transcript from all parts received so far.
-            const transcript = Array.from(event.results)
-                .map((result: any) => result[0].transcript)
-                .join('');
-            
-            setPrompt(transcript);
-
-            // If the last result is final, it means the user has paused.
-            // Send the complete message.
-            const lastResult = event.results[event.results.length - 1];
-            if (lastResult.isFinal) {
-                if (transcript.trim()) {
-                    onSendMessage(transcript.trim());
-                }
-                setPrompt(''); // Clear the input for the next command.
-            }
-        };
-
-        recognition.onerror = (event: any) => {
-            console.error("Speech recognition error:", event.error);
-            if (placeholderTimeoutRef.current) clearTimeout(placeholderTimeoutRef.current);
-            if (maxDurationTimeoutRef.current) clearTimeout(maxDurationTimeoutRef.current);
-            
-            if (event.error !== 'no-speech') {
-                let title = 'Voice Input Error';
-                let text = 'An unknown error occurred.';
-                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    title = 'Microphone Access Denied';
-                    text = 'Please allow microphone access in your browser settings to use voice input.';
-                } else if (event.error === 'network') {
-                    title = 'Voice Connection Failed';
-                    text = 'A network error occurred. Please check your internet connection.';
-                }
-                Swal.fire({ icon: 'error', title, text });
-            }
-            setIsRecording(false);
-        };
-        
-        recognition.onend = () => {
-            setIsRecording(false);
-            if (maxDurationTimeoutRef.current) clearTimeout(maxDurationTimeoutRef.current);
-        };
-        
-        return () => {
-            if (recognitionRef.current) recognitionRef.current.abort();
-            if (placeholderTimeoutRef.current) clearTimeout(placeholderTimeoutRef.current);
-            if (maxDurationTimeoutRef.current) clearTimeout(maxDurationTimeoutRef.current);
-        }
-    }, [onSendMessage]);
-
-    const handleMicClick = () => {
-        if (!recognitionRef.current) {
-            Swal.fire({ icon: 'warning', title: 'Unsupported Browser', text: "Your browser doesn't support speech recognition." });
-            return;
-        }
-
-        if (isRecording) {
-            recognitionRef.current.stop();
-        } else {
-            try {
-                setPrompt('');
-                recognitionRef.current.start();
-                setIsRecording(true);
-
-                // Set a max duration timeout. If the user talks for 20s straight, stop listening.
-                maxDurationTimeoutRef.current = window.setTimeout(() => {
-                    if (recognitionRef.current) {
-                        recognitionRef.current.stop();
-                    }
-                }, 20000);
-
-            } catch (error) {
-                console.error("Could not start recognition:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Could Not Start',
-                    text: 'There was an issue starting voice recognition. Please ensure your microphone is enabled.',
-                });
-                setIsRecording(false);
-            }
-        }
-    };
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -279,19 +150,16 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
                         {/* Input Area */}
                         <div className="p-4 border-t border-black/10">
                             <form onSubmit={handleSubmit} className="flex items-center gap-2">
-                                <div className={`relative flex-grow rounded-lg ${isRecording ? 'pulse-ring-animation' : ''}`}>
+                                <div className="relative flex-grow">
                                     <input
                                         type="text"
                                         value={prompt}
                                         onChange={e => setPrompt(e.target.value)}
-                                        placeholder={placeholder}
+                                        placeholder="Ask me anything..."
                                         className="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
                                         disabled={isLoading}
                                     />
                                 </div>
-                                <button type="button" onClick={handleMicClick} disabled={isLoading} className={`p-2.5 rounded-full group transition-colors ${isRecording ? 'bg-red-100 animate-pulse' : 'hover:bg-gray-100'}`} aria-label="Use voice input">
-                                    <MicIcon isRecording={isRecording} />
-                                </button>
                                 <button type="submit" disabled={!prompt.trim() || isLoading} className="bg-brand-primary text-white font-semibold py-2.5 px-6 rounded-lg hover:bg-brand-dark transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed">
                                     Send
                                 </button>
