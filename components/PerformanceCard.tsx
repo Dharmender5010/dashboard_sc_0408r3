@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 
 const AnimatedNumber: React.FC<{ value: number }> = ({ value }) => {
-    const count = useMotionValue(0);
+    const count = useMotionValue<number>(0);
     const rounded = useTransform(count, latest => Math.round(latest));
 
     useEffect(() => {
