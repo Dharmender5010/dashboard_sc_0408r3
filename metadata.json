@@ -1,8 +1,6 @@
 {
-  "name": "SC-Dashboard 04-Aug-2025",
+  "name": "SC-Dashboard 04-Aug-2025_Deployed",
   "description": "Including Continue with Gmail & Need Help Functionality",
-  "requestFramePermissions": [
-    "microphone"
-  ],
+  "requestFramePermissions": [],
   "prompt": ""
 }
