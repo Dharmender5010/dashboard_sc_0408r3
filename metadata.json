@@ -1,0 +1,8 @@
+{
+  "name": "SC-Dashboard 04-Aug-2025",
+  "description": "Including Continue with Gmail & Need Help Functionality",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "prompt": ""
+}
